@@ -277,6 +277,7 @@ abstract class MainAsset extends InventoryAsset
 
         // * USERS
         $cnt = 0;
+        $_user_inventory = [];
         if (isset($this->extra_data['users'])) {
             if (count($this->extra_data['users']) > 0) {
                 $user_temp = '';
@@ -296,6 +297,8 @@ abstract class MainAsset extends InventoryAsset
                         $user .= "@" . $a_users->domain;
                     }
                 }
+                $_user_inventory[] = $user;
+
                 if ($cnt == 0) {
                     if (property_exists($a_users, 'login')) {
                        // Search on domain
@@ -347,6 +350,10 @@ abstract class MainAsset extends InventoryAsset
             if (empty($val->contact)) {
                 $val->contact = $user_temp ?? '';
             }
+        }
+
+        if (!empty($_user_inventory)) {
+            $val->_user_inventory = $_user_inventory;
         }
     }
 
