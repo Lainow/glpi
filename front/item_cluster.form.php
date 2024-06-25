@@ -53,12 +53,20 @@ if (isset($_POST['update'])) {
     $icl->check(-1, CREATE, $_POST);
     $icl->add($_POST);
     $url = $cluster->getFormURLWithID($_POST['clusters_id']);
-    Html::redirect($url);
+    if (isset($_POST['items_form'])) {
+        Html::back();
+    } else {
+        Html::redirect($url);
+    }
 } else if (isset($_POST['purge'])) {
     $icl->check($_POST['id'], PURGE);
     $icl->delete($_POST, 1);
     $url = $cluster->getFormURLWithID($_POST['clusters_id']);
-    Html::redirect($url);
+    if (isset($_POST['items_form'])) {
+        Html::back();
+    } else {
+        Html::redirect($url);
+    }
 }
 
 if (!isset($_REQUEST['cluster']) && !isset($_REQUEST['id'])) {
