@@ -1,5 +1,7 @@
 <?php
 
+use Glpi\Application\View\TemplateRenderer;
+
 /**
  * ---------------------------------------------------------------------
  *
@@ -55,13 +57,19 @@ class Item_Cluster extends CommonDBRelation
         if ($_SESSION['glpishow_count_on_tabs']) {
             $nb = self::countForMainItem($item);
         }
+        if ($item instanceof Computer) {
+            return self::createTabEntry(__('Cluster'), $nb);
+        }
         return self::createTabEntry(_n('Item', 'Items', $nb), $nb);
     }
 
     public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
     {
-        self::showItems($item);
-        return true;
+        if ($item instanceof Cluster) {
+            self::showItems($item);
+        } elseif ($item instanceof Computer || $item instanceof NetworkEquipment) {
+            self::showForItem($item, $withtemplate);
+        }
     }
 
     public function getForbiddenStandardMassiveAction()
@@ -176,6 +184,42 @@ class Item_Cluster extends CommonDBRelation
                 Html::closeForm();
             }
         }
+    }
+
+    /**
+     * Print the item's operating system form
+     *
+     * @param CommonDBTM $item Item instance
+     *
+     * @since 9.2
+     *
+     * @return void
+     **/
+    public static function showForItem(CommonDBTM $item, $withtemplate = 0)
+    {
+        $cluster_item = new self();
+        if (
+            $cluster_item->getFromDBByCrit(
+                [
+                    'items_id' => $item->fields['id'],
+                    'itemtype'    => $item->getType()
+                ]
+            ) !== false
+        ) {
+            $cluster = new Cluster();
+            $cluster = $cluster->getById($cluster_item->fields['clusters_id']);
+            $canedit = $cluster->canEdit($cluster->getID());
+        }
+        TemplateRenderer::getInstance()->display('pages/assets/clusteritem.html.twig', [
+            'item' => $cluster ?? null,
+            'canedit' => $canedit ?? false,
+            'withtemplate' => $withtemplate,
+            'rand' => mt_rand(),
+            'formURL' => self::getFormURL(),
+            'clusteritem_id' => $cluster_item->getID() ?? 0,
+            'itemtype' => $item->getType(),
+            'items_id' => $item->getID()
+        ]);
     }
 
     public function showForm($ID, array $options = [])

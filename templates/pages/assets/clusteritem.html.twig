@@ -1,0 +1,102 @@
+{#
+ # ---------------------------------------------------------------------
+ #
+ # GLPI - Gestionnaire Libre de Parc Informatique
+ #
+ # http://glpi-project.org
+ #
+ # @copyright 2015-2024 Teclib' and contributors.
+ # @copyright 2003-2014 by the INDEPNET Development Team.
+ # @licence   https://www.gnu.org/licenses/gpl-3.0.html
+ #
+ # ---------------------------------------------------------------------
+ #
+ # LICENSE
+ #
+ # This file is part of GLPI.
+ #
+ # This program is free software: you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation, either version 3 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ #
+ # ---------------------------------------------------------------------
+ #}
+
+{% import 'components/form/fields_macros.html.twig' as fields %}
+<form action="{{formURL}}" method="post">
+<input type="hidden" name="_glpi_csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="items_form" value="">
+{% if item.fields['id'] is null %}
+    <input type="hidden" name="items_id" value="{{ items_id }}">
+    <input type="hidden" name="itemtype" value="{{ itemtype }}">
+    <table class="tab_cadre_fixe">
+        <tr>
+            <th> {{ __("Add a Cluster") }} </th>
+        </tr>
+    </table>
+    {{ fields.dropdownField(
+        'Cluster',
+        'clusters_id',
+        '',
+        __("Cluster"),
+    ) }}
+    <button class="btn btn-primary me-2" type="submit" name="add" value="1">
+        <i class="ti ti-plus"></i>
+        <span>{{ __('Add') }}</span>
+    </button>
+{% else %}
+    <input type="hidden" name="id" value="{{ clusteritem_id }}">
+    {% set state = call('State::getById', [item.fields['states_id']]) %}
+    {% set clustertype = call('ClusterType::getById', [item.fields['clustertypes_id']]) %}
+    {% set user = call('User::getById', [item.fields['users_id_tech']]) %}
+    {% set group = call('Group::getById', [item.fields['groups_id_tech']]) %}
+    {% set state = call('State::getById', [item.fields['states_id']]) %}
+    {% set clustertype = call('ClusterType::getById', [item.fields['clustertypes_id']]) %}
+    {% set user = call('User::getById', [item.fields['users_id_tech']]) %}
+    {% set group = call('Group::getById', [item.fields['groups_id_tech']]) %}
+    <table class='tab_cadre_fixehov'>
+        <tr>
+            <th> {{ __("Name") }} </th>
+            <th> {{ __("Status") }} </th>
+            <th> {{ __("Type") }} </th>
+            <th> {{ __("Technician in Charge") }} </th>
+            <th> {{ __("Group in Charge") }} </th>
+            <th> {{ __("UUID") }} </th>
+            <th> {{ __("Version") }} </th>
+            <th> {{ __("Comment") }} </th>
+        </tr>
+        <tr class='tab_bg_1'>
+            <td> {{ item.getLink()|raw }} </td>
+            <td>
+                {{ state.getLink()|raw }}
+            </td>
+            <td>
+                {{ clustertype.getLink()|raw }}
+            </td>
+            <td>
+                {{ user.getLink()|raw }}
+            </td>
+            <td>
+                {{ group.getLink()|raw }}
+            </td>
+            <td> {{ item.fields['uuid'] }} </td>
+            <td> {{ item.fields['version'] }} </td>
+            <td> {{ item.fields['comment'] }} </td>
+        </tr>
+    </table>
+
+    <button class="btn btn-red me-2" type="submit" name="purge">
+        <i class="ti ti-trash"></i>
+        <span>{{ __('Remove') }}</span>
+    </button>
+{% endif %}
+</form>

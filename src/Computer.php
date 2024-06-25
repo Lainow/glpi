@@ -127,6 +127,7 @@ class Computer extends CommonDBTM
          ->addStandardTab('Reservation', $ong, $options)
          ->addStandardTab('Domain_Item', $ong, $options)
          ->addStandardTab('Appliance_Item', $ong, $options)
+         ->addStandardTab('Item_Cluster', $ong, $options)
          ->addStandardTab('DatabaseInstance', $ong, $options)
          ->addStandardTab('RuleMatchedLog', $ong, $options)
          ->addStandardTab('Log', $ong, $options);
