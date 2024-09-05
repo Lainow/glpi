@@ -8473,7 +8473,7 @@ JSON;
 
         $this->assertGreaterThan($nb_vm, countElementsInTable(\VirtualMachineType::getTable()));
 
-        //IMPORT rule to refuse "db" virtual machine
+        // Import rule to refuse "docker" virtual machine
         $criteria = [
             [
                 'condition' => 0,
