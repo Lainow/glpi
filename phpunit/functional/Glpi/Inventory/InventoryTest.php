@@ -8592,9 +8592,8 @@ JSON;
     public function testRuleRefuseUpdateComputerVirtualMachines()
     {
         // Helper function to create JSON string
-        function createJsonString($versionClient)
-        {
-            return <<<JSON
+        $json_str =
+        <<<JSON
             {
                 "action": "inventory",
                 "content": {
@@ -8619,7 +8618,7 @@ JSON;
                         "memory": 15326,
                         "name": "samuel-Inspiron-15-3525",
                         "swap": 1951,
-                        "uuid": "4c4c4544-0046-3310-8030-c3c04f315a33",
+                        "uuid": "qsrdgfd",
                         "vmsystem": "Physical",
                         "workgroup": "home"
                     },
@@ -8628,17 +8627,16 @@ JSON;
                             "image": "axllent\/mailpit",
                             "name": "mailpit_update",
                             "status": "running",
-                            "uuid": "0b66f80dde33",
+                            "uuid": "zrerythegfzed",
                             "vmtype": "docker"
                         }
                     ],
-                    "versionclient": "$versionClient"
+                    "versionclient": "GLPI-Test_v1.10-dev"
                 },
                 "deviceid": "test-2024-09-04-16-49-35",
                 "itemtype": "Computer"
             }
-            JSON;
-        }
+        JSON;
 
         // Change config to import VMs as computers
         $this->login();
@@ -8647,7 +8645,7 @@ JSON;
         $this->logout();
 
         // Initial inventory
-        $json = json_decode(createJsonString("GLPI-Agent_v1.10-dev"));
+        $json = json_decode($json_str);
         $count_vms = count($json->content->virtualmachines);
         $nb_computers = countElementsInTable(\Computer::getTable());
 
@@ -8657,7 +8655,19 @@ JSON;
         $this->assertSame($count_vms, countElementsInTable(\ItemVirtualMachine::getTable()));
         $this->assertSame($nb_computers + 2, countElementsInTable(\Computer::getTable()));
         $computer = new \Computer();
-        $computer->getFromDBByCrit(['name' => 'mailpit_update']);
+        $computer->getFromDBByCrit(['uuid' => 'zrerythegfzed']);
+
+        // First update inventory
+        $json = json_decode($json_str);
+        $count_vms = count($json->content->virtualmachines);
+        $nb_computers = countElementsInTable(\Computer::getTable());
+
+        $this->doInventory($json);
+
+        // Check created VMs
+        $computeru = new \Computer();
+        $computeru->getFromDBByCrit(['uuid' => 'zrerythegfzed']);
+        $this->assertSame($computeru->fields['name'], 'mailpit_update');
 
         // Create Docker VM type
         $nb_vm = countElementsInTable(\VirtualMachineType::getTable());
@@ -8722,16 +8732,14 @@ JSON;
         ];
         $this->assertGreaterThan(0, (int)$ruleaction->add($input));
 
-        $nb_computers = countElementsInTable(\Computer::getTable());
-
-        // Second inventory
+        // Second update inventory (Must be refused because of the rule)
+        $json_str = str_replace('"mailpit_update"', '"mailpit_update2"', $json_str);
+        $json = json_decode($json_str);
         $this->doInventory($json);
 
-        // Check that VM computers are not created
-        $this->assertSame($count_vms, countElementsInTable(\ItemVirtualMachine::getTable()));
-        $this->assertSame($nb_computers, countElementsInTable(\Computer::getTable()));
+        // Check that VM computers are not updated
         $c_update = new \Computer();
-        $c_update->getFromDBByCrit(['name' => 'mailpit_update']);
-        $this->assertSame($c_update->fields['date_mod'], $computer->fields['date_mod']);
+        $c_update->getFromDBByCrit(['uuid' => 'zrerythegfzed']);
+        $this->assertSame($c_update->fields['name'], "mailpit_update");
     }
 }
