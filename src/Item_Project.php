@@ -33,6 +33,8 @@
  * ---------------------------------------------------------------------
  */
 
+use Glpi\Application\View\TemplateRenderer;
+
 /**
  * Item_Project Class
  *
@@ -222,6 +224,8 @@ class Item_Project extends CommonDBRelation
 
     public function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
     {
+        /** @var array $CFG_GLPI */
+        global $CFG_GLPI;
 
         if (!$withtemplate) {
             $nb = 0;
@@ -235,8 +239,9 @@ class Item_Project extends CommonDBRelation
                 default:
                    // Not used now
                     if (
-                        Session::haveRight("project", Project::READALL)
-                        && ($item instanceof CommonDBTM)
+                        Project::canView()
+                        && $item instanceof CommonDBTM
+                        && in_array($item->getType(), $CFG_GLPI["project_asset_types"])
                     ) {
                         if ($_SESSION['glpishow_count_on_tabs']) {
                               // Direct one
@@ -265,6 +270,8 @@ class Item_Project extends CommonDBRelation
 
     public static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
     {
+        /** @var array $CFG_GLPI */
+        global $CFG_GLPI;
 
         switch ($item->getType()) {
             case 'Project':
@@ -272,9 +279,92 @@ class Item_Project extends CommonDBRelation
                 break;
 
             default:
-               // Not defined and used now
-               // Project::showListForItem($item);
+                if (
+                    Project::canView()
+                    && $item instanceof CommonDBTM
+                    && in_array($item->getType(), $CFG_GLPI["project_asset_types"])
+                ) {
+                    self::showForAsset($item);
+                }
+                break;
         }
         return true;
+    }
+
+    private static function showForAsset(CommonDBTM $item): void
+    {
+
+        $item_project = new self();
+        $item_projects = $item_project->find([
+            'itemtype' => $item->getType(),
+            'items_id' => $item->getID()
+        ]);
+
+        $used = $entries = [];
+
+        foreach ($item_projects as $value) {
+            $used[] = $value['projects_id'];
+            $project = new Project();
+            $result = $project->getFromDB($value['projects_id']);
+
+            if ($result === false) {
+                continue;
+            }
+
+            $priority = CommonITILObject::getPriorityName($project->fields['priority']);
+            $prioritycolor  = $_SESSION["glpipriority_" . $project->fields['priority']];
+            $state = ProjectState::getById($project->fields['projectstates_id']);
+
+            if (!$project->can($project->fields['id'], READ)) {
+                $data = [
+                    'name' => $project->getLink(),
+                    'priority' => '',
+                    'code' => '',
+                    'projectstates_id' => '',
+                    'percent_done' => '',
+                    'creation_date' => '',
+                    'content' => ''
+                ];
+            } else {
+                $data = [
+                    'name' => $project->getLink(),
+                    'priority' => [
+                        'content' => $priority,
+                        'color' => $prioritycolor
+                    ],
+                    'code' => $project->fields['code'],
+                    'projectstates_id' => $state !== false
+                        ? [
+                            'content' => $state->fields['name'],
+                            'color' => $state->fields['color']
+                        ] : '',
+                    'percent_done' => (float)$project->fields['percent_done'] . '%',
+                    'creation_date' => $project->fields['date_creation'],
+                    'content' => $project->fields['content']
+                ];
+            }
+            $entries[] = $data;
+        }
+
+        $cols = [
+            'columns' => [
+                "name" => __('Name'),
+                "priority" => __('Priority'),
+                "code" => __('Code'),
+                "projectstates_id" => _n('State', 'States', 1),
+                "percent_done" => __('Percent done'),
+                "creation_date" => __('Creation date'),
+                "content" => __('Description'),
+            ]
+        ];
+
+        TemplateRenderer::getInstance()->display('pages/tools/item_project.html.twig', [
+            'item' => $item,
+            'used' => $used,
+            'data' => [
+                'columns' => $cols['columns'],
+                'entries' => $entries
+            ]
+        ]);
     }
 }

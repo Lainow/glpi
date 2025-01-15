@@ -52,6 +52,7 @@ class DeviceCamera extends CommonDevice
          ->addStandardTab('Item_DeviceCamera_ImageFormat', $ong, $options)
          ->addStandardTab('Infocom', $ong, $options)
          ->addStandardTab('Contract_Item', $ong, $options)
+         ->addStandardTab('Item_Project', $ong, $options)
          ->addStandardTab('Log', $ong, $options);
         return $ong;
     }

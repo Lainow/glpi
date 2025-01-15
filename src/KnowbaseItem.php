@@ -1636,8 +1636,7 @@ class KnowbaseItem extends CommonDBVisible implements ExtraVisibilityCriteria
                         ];
                     }
 
-                    $expr = "(MATCH(" . $DB->quoteName('glpi_knowbaseitems.name') . ", " . $DB->quoteName('glpi_knowbaseitems.answer') . ")
-                           AGAINST(" . $DB->quote($search_wilcard) . " IN BOOLEAN MODE)";
+                    $expr = "(" . $DB->quoteName('glpi_knowbaseitems.name') . " LIKE %" . $search . "% OR" . $DB->quoteName('glpi_knowbaseitems.answer') . " LIKE %" . $search . "%) AND " . $DB->quoteName('glpi_knowbaseitems.answer') . " NOT LIKE '%<%" . $search . "%>%';";
 
                     if (!empty($addscore)) {
                         foreach ($addscore as $addscore_field) {
