@@ -1,0 +1,58 @@
+{#
+ # ---------------------------------------------------------------------
+ #
+ # GLPI - Gestionnaire Libre de Parc Informatique
+ #
+ # http://glpi-project.org
+ #
+ # @copyright 2015-2026 Teclib' and contributors.
+ # @licence   https://www.gnu.org/licenses/gpl-3.0.html
+ #
+ # ---------------------------------------------------------------------
+ #
+ # LICENSE
+ #
+ # This file is part of GLPI.
+ #
+ # This program is free software: you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation, either version 3 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ #
+ # ---------------------------------------------------------------------
+ #}
+
+{#
+ # Author and time displayed above a timeline card.
+ #
+ # Expected variables:
+ #  - users_id:     author of the entry
+ #  - user_object:  author, if already loaded (optional)
+ #  - anonym_user:  whether the author must be anonymized
+ #  - date:         creation date of the entry
+ #  - anchor:       anchor of the entry
+ #  - is_right:     whether the entry is displayed on the right side
+ #}
+
+<div class="timeline-meta {{ is_right ? 'timeline-meta-right' : '' }}">
+   {% if users_id > 0 %}
+      <span class="timeline-author">
+         {{ include('components/user/link_with_tooltip.html.twig', {
+            'users_id': users_id,
+            'user_object': user_object ?? null,
+            'enable_anonymization': anonym_user,
+         }, with_context = false) }}
+      </span>
+   {% endif %}
+   <a class="timeline-time" href="#{{ anchor }}" title="{{ date|formatted_datetime }}" data-bs-toggle="tooltip">
+      {{ date|date('H:i') }}
+   </a>
+</div>

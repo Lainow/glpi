@@ -32,7 +32,11 @@
 
 {% set timeline_display_date = session('glpitimeline_date_format') %}
 
-<span class="badge user-select-auto text-wrap d-none d-md-flex align-items-center flex-wrap">
+{% set is_validation_answer = entry is defined and entry['type'] ends with 'Validation' and entry['item_action'] == 'validation-answer' %}
+{% set is_group_validation_answer = is_validation_answer and entry['item']['itemtype_target'] == 'Group' %}
+
+{# The timeline displays the author and time above the card, the creation badge is only kept for the target group #}
+<span class="badge user-select-auto text-wrap d-none d-md-flex align-items-center flex-wrap {{ is_group_validation_answer ? '' : 'timeline-created-badge' }}">
    {% set date_span %}
       <span class="d-inline-flex align-items-center"
          {% if timeline_display_date == constant('Config::TIMELINE_RELATIVE_DATE') %}
@@ -51,8 +55,7 @@
       </span>
    {% endset %}
 
-   {% set is_validation_answer = entry is defined and entry['type'] ends with 'Validation' and entry['item_action'] == 'validation-answer' %}
-   {% if is_validation_answer and entry['item']['itemtype_target'] == 'Group' %}
+   {% if is_group_validation_answer %}
       {% set creator_span %}
          {{ include('components/user/link_with_tooltip.html.twig', {
             'users_id': users_id,

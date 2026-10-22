@@ -62,18 +62,93 @@
                   {{ get_item_name('SolutionType', entry_i['solutiontypes_id']) }}
                </span>
             {% endif %}
-
-            {% if entry_i['status'] != constant('CommonITILValidation::WAITING') and entry_i['status'] != constant('CommonITILValidation::NONE') %}
-               <span class="badge bg-blue-lt">
-                  {% set action = entry_i['status'] == constant('CommonITILValidation::ACCEPTED') ? __('Accepted') : _x('validation', 'Refused') %}
-                  {{ __('%1$s on %2$s by %3$s')|format(
-                     action,
-                     (entry_i['date_approval']|formatted_datetime),
-                     get_item_link('User', entry_i['users_id_approval'], {'enable_anonymization': true})
-                  )|raw }}
-               </span>
-            {% endif %}
          </div>
+
+         {% set approval_status = entry_i['status'] %}
+         {% if approval_status in [constant('CommonITILValidation::WAITING'), constant('CommonITILValidation::ACCEPTED'), constant('CommonITILValidation::REFUSED')] %}
+            <div class="solution-approval" data-testid="solution-approval">
+               <div class="solution-approval-status">
+                  {% if approval_status == constant('CommonITILValidation::WAITING') %}
+                     <span class="solution-approval-badge is-waiting">
+                        <i class="ti ti-hourglass" aria-hidden="true"></i>
+                        {{ __('Waiting for approval') }}
+                     </span>
+                     {# The requesters are the ones who approve the solution #}
+                     {% set approvers = item.getUsers(constant('CommonITILActor::REQUESTER'))
+                        |filter((actor) => actor['users_id'] > 0)
+                        |map((actor) => get_item_name('User', actor['users_id'])) %}
+                     {% if approvers is not empty %}
+                        <span class="solution-approval-user">{{ __('By %s')|format(approvers|join(', ')) }}</span>
+                     {% endif %}
+                  {% else %}
+                     {% set is_accepted = approval_status == constant('CommonITILValidation::ACCEPTED') %}
+                     <span class="solution-approval-badge {{ is_accepted ? 'is-accepted' : 'is-refused' }}">
+                        <i class="ti {{ is_accepted ? 'ti-check' : 'ti-x' }}" aria-hidden="true"></i>
+                        {{ is_accepted ? __('Accepted') : _x('validation', 'Refused') }}
+                     </span>
+                     <span class="solution-approval-user" title="{{ entry_i['date_approval']|formatted_datetime }}" data-bs-toggle="tooltip">
+                        {{ __('By %s')|format(get_item_link('User', entry_i['users_id_approval'], {'enable_anonymization': true}))|raw }}
+                     </span>
+                  {% endif %}
+               </div>
+
+               {% if approval_status == constant('CommonITILValidation::WAITING')
+                  and item.isSolved() and item.canApprove()
+                  and item.isAllowedStatus(item.fields['status'], constant('CommonITILObject::CLOSED')) %}
+                  {% set refuse_block_id = 'solution-refuse-' ~ rand %}
+                  <div class="solution-approval-actions">
+                     {# Approving does not need any comment #}
+                     <form method="post" action="{{ 'ITILFollowup'|itemtype_form_path }}" data-submit-once>
+                        <input type="hidden" name="itemtype" value="{{ item.getType() }}" />
+                        <input type="hidden" name="items_id" value="{{ item.fields['id'] }}" />
+                        <input type="hidden" name="requesttypes_id" value="0" />
+                        <button type="submit" class="btn btn-success btn-approve" name="add_close">
+                           <i class="ti ti-check" aria-hidden="true"></i>
+                           <span>{{ __('Approve') }}</span>
+                        </button>
+                     </form>
+                     <button type="button" class="btn btn-danger btn-refuse" data-bs-toggle="collapse"
+                             data-bs-target="#{{ refuse_block_id }}" aria-expanded="false" aria-controls="{{ refuse_block_id }}">
+                        <i class="ti ti-x" aria-hidden="true"></i>
+                        <span>{{ __('Refuse') }}</span>
+                     </button>
+                  </div>
+
+                  {# Refusing requires a reason #}
+                  <div class="collapse" id="{{ refuse_block_id }}">
+                     <form method="post" action="{{ 'ITILFollowup'|itemtype_form_path }}" class="solution-refuse-form" data-submit-once>
+                        <input type="hidden" name="itemtype" value="{{ item.getType() }}" />
+                        <input type="hidden" name="items_id" value="{{ item.fields['id'] }}" />
+                        <input type="hidden" name="requesttypes_id" value="0" />
+                        {{ fields.textareaField(
+                           'content',
+                           '',
+                           __('Comments'),
+                           {
+                              'full_width': true,
+                              'enable_richtext': true,
+                              'enable_fileupload': true,
+                              'entities_id': item.fields['entities_id'],
+                              'is_horizontal': false,
+                              'required': true,
+                              'rand': rand,
+                           }
+                        ) }}
+                        <div class="solution-refuse-actions">
+                           <button type="button" class="btn" data-bs-toggle="collapse" data-bs-target="#{{ refuse_block_id }}"
+                                   aria-controls="{{ refuse_block_id }}">
+                              <span>{{ __('Cancel') }}</span>
+                           </button>
+                           <button type="submit" class="btn btn-danger" name="add_reopen">
+                              <i class="ti ti-x" aria-hidden="true"></i>
+                              <span>{{ __('Refuse') }}</span>
+                           </button>
+                        </div>
+                     </form>
+                  </div>
+               {% endif %}
+            </div>
+         {% endif %}
       </div>
    {% else %}
       <div class="itilsolution">

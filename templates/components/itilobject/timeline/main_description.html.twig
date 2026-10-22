@@ -37,15 +37,26 @@
      data-itemtype="{{ item.getType() }}" data-items-id="{{ item.fields['id'] }}"
      data-testid="timeline-ITILContent">
    <div class="row">
-      <div class="col-auto d-flex flex-column ">
+      <div class="col-auto d-flex flex-column user-part">
     {% if users_id %}
          {{ include('components/user/picture.html.twig', {'users_id': users_id}, with_context = false) }}
     {% endif %}
       </div>
-      <div class="col-12 col-sm">
-         <div class="mt-2 timeline-content left card">
+      <div class="col-12 col-sm d-flex flex-column content-part">
+         {{ include('components/itilobject/timeline/timeline_item_meta.html.twig', {
+            'users_id': users_id,
+            'anonym_user': anonym_user ?? false,
+            'date': item.fields['date'],
+            'anchor': get_class(item) ~ '_' ~ item.getID(),
+            'is_right': false,
+         }, with_context = false) }}
+         <div class="timeline-content left card">
             <div class="card-body px-1 px-xxl-3">
-               <div class="d-flex timeline-header">
+               <div class="d-flex align-items-center timeline-header">
+                  <span class="timeline-type-badge me-2">
+                     <i class="ti ti-file-description" aria-hidden="true"></i>
+                     {{ __('Description') }}
+                  </span>
                   <div class="d-flex creator">
                      {{ include('components/itilobject/timeline/timeline_item_header_badges.html.twig', {
                         'users_id': users_id,

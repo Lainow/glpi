@@ -32,17 +32,74 @@
  */
 
 .timeline-item {
-    min-width: 65%;
+    // Cards fit their content, up to the timeline width
+    min-width: 0;
+    max-width: 100%;
+
+    @include media-breakpoint-up(sm) {
+        > .row {
+            flex-wrap: nowrap;
+        }
+
+        .content-part {
+            flex: 0 1 auto;
+            width: auto;
+            min-width: 0;
+        }
+    }
 
     .timeline-header {
         margin-top: -0.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
 
-        .timeline-item-buttons {
-            .is-private {
-                color: var(--glpi-timeline-badge-fg);
+        .creator .badge {
+            background: transparent;
+            color: var(--tblr-secondary);
+            font-weight: 400;
+            padding-left: 0;
+        }
+    }
+
+    // Author and time are displayed above the card
+    .timeline-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 0.75rem;
+        line-height: 1.4;
+
+        &.timeline-meta-right {
+            flex-direction: row-reverse;
+        }
+
+        .timeline-author {
+            font-weight: 600;
+
+            a {
+                color: var(--tblr-body-color);
+            }
+
+            .ti-user {
+                display: none;
             }
         }
+
+        .timeline-time {
+            color: var(--tblr-secondary);
+        }
+    }
+
+    // Creation badge is replaced by the author and time above the card
+    .timeline-header .creator > .timeline-created-badge {
+        display: none !important;
+    }
+
+    .user-part .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50% !important; // Override `.rounded` utility class
+        font-size: 0.75rem;
     }
 
     .todo-list-state {
@@ -102,207 +159,155 @@
     .timeline-content {
         position: relative;
         max-width: 820px;
-        min-width: 100%;
+        min-width: 0;
         overflow-wrap: anywhere;
 
-        // Square only the corner the notch points to: top-left for left-aligned
-        // items, top-right for right-aligned (t-right) ones. Squaring top-left
-        // unconditionally left t-right bubbles with two squared top corners.
-        &:not(.t-right) {
-            border-top-left-radius: 0;
+        // Same space below the content as between the top of the card and the type badge
+        > .card-body {
+            padding-bottom: 0.5625rem;
         }
 
-        @include media-breakpoint-up(sm) {
-            &::before {
-                content: " ";
-                position: absolute;
-                width: 0;
-                height: 0;
-                left: -14px;
-                right: auto;
-                top: -1px;
-                bottom: auto;
-                border: 7px dashed transparent;
-            }
+        .read-only-content > :last-child,
+        .rich_text_container > :last-child {
+            margin-bottom: 0;
+        }
 
-            &::after {
-                content: " ";
-                position: absolute;
-                width: 0;
-                height: 0;
-                left: -12px;
-                right: auto;
-                top: 0;
-                bottom: auto;
-                border: 6px dashed transparent;
-            }
+        // Cards use the page background, on the white timeline
+        background-color: var(--tblr-body-bg);
+        color: var(--tblr-body-color);
+        border: 1px solid var(--tblr-border-color);
 
-            &.t-right {
-                border-top-right-radius: 0;
+        // Square only the corner pointing to the author avatar
+        border-radius: 4px 12px 12px;
 
-                &::before {
-                    left: auto;
-                    right: -14px;
-                }
+        // No shadow at rest: it would make the bottom border look thicker than the top one
+        box-shadow: none;
+        transition: box-shadow 150ms ease;
 
-                &::after {
-                    left: auto;
-                    right: -12px;
-                }
-            }
+        &:hover {
+            box-shadow: 0 4px 12px rgb(16, 25, 35, 8%);
+        }
+
+        &.t-right {
+            border-radius: 12px 4px 12px 12px;
         }
     }
 
     &.private-item {
         .timeline-content {
             border-style: dashed;
-            border-width: 3px;
-
-            &::before {
-                top: -3px;
-            }
-
-            &::after {
-                left: -7px;
-            }
-
-            &.t-right {
-                &::after {
-                    left: auto;
-                    right: -7px;
-                }
-            }
+            border-color: var(--tblr-gray-400);
         }
     }
 
-    &:not(.private-item) {
-        .timeline-content {
-            padding: 2px; // compensate border
+    .timeline-type-badge,
+    .is-private {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        line-height: 1.4;
+        padding: 2px 8px 2px 6px;
+        border-radius: 999px;
+        white-space: nowrap;
+
+        i {
+            font-size: 0.8125rem;
         }
+    }
+
+    // Badges are slightly darker than the card background of their type
+    .timeline-type-badge {
+        background-color: color-mix(in srgb, var(--glpi-timeline-fup-fg) 10%, var(--glpi-timeline-fup-bg));
+        color: var(--glpi-timeline-fup-fg);
+    }
+
+    .is-private {
+        background-color: var(--glpi-timeline-badge-bg);
+        color: var(--glpi-timeline-badge-fg);
     }
 
     &.ITILContent,
     &.ITILValidation {
+        .timeline-type-badge {
+            background-color: color-mix(in srgb, var(--glpi-timeline-itil-content-fg) 10%, var(--glpi-timeline-itil-content-bg));
+            color: var(--glpi-timeline-itil-content-fg);
+        }
+    }
+
+    &.ITILTask .timeline-type-badge {
+        background-color: color-mix(in srgb, var(--glpi-timeline-task-fg) 10%, var(--glpi-timeline-task-bg));
+        color: var(--glpi-timeline-task-fg);
+    }
+
+    &.ITILSolution {
+        .timeline-type-badge {
+            background-color: color-mix(in srgb, var(--glpi-timeline-solution-fg) 10%, color-mix(in srgb, var(--glpi-timeline-solution-bg) 50%, var(--tblr-bg-surface)));
+            color: var(--glpi-timeline-solution-fg);
+        }
+
+        .timeline-content .solimg {
+            position: absolute;
+            color: rgb(66, 91, 100, 10%);
+            pointer-events: none;
+        }
+    }
+
+    &.Document_Item .timeline-type-badge {
+        background-color: var(--glpi-timeline-document-bg);
+        color: var(--glpi-timeline-document-fg);
+    }
+
+    // Each type of entry has its own card color
+    &.ITILContent,
+    &.ITILValidation {
         .timeline-content {
+            border-color: var(--glpi-timeline-itil-content-border-color);
             background-color: var(--glpi-timeline-itil-content-bg);
             color: var(--glpi-timeline-itil-content-fg);
-            border-color: var(--glpi-timeline-itil-content-border-color);
-
-            &::before {
-                border-color: var(--glpi-timeline-itil-content-border-color) var(--glpi-timeline-itil-content-border-color) transparent transparent;
-            }
-
-            &::after {
-                border-color: var(--glpi-timeline-itil-content-bg) var(--glpi-timeline-itil-content-bg) transparent transparent;
-            }
-
-            &.t-right::before {
-                border-color: var(--glpi-timeline-itil-content-border-color) transparent transparent var(--glpi-timeline-itil-content-border-color);
-            }
-
-            &.t-right::after {
-                border-color: var(--glpi-timeline-itil-content-bg) transparent transparent var(--glpi-timeline-itil-content-bg);
-            }
         }
     }
 
-    &.ITILFollowup,
-    &.KnowbaseItemComment {
-        .timeline-content {
-            background-color: var(--glpi-timeline-fup-bg);
-            color: var(--glpi-timeline-fup-fg);
-            border-color: var(--glpi-timeline-fup-border-color);
-            background-image: url("../pics/timeline/followup.png");
-            background-repeat: no-repeat;
-
-            &::before {
-                border-color: var(--glpi-timeline-fup-border-color) var(--glpi-timeline-fup-border-color) transparent transparent;
-            }
-
-            &::after {
-                border-color: var(--glpi-timeline-fup-bg) var(--glpi-timeline-fup-bg) transparent transparent;
-            }
-
-            &.t-right::before {
-                border-color: var(--glpi-timeline-fup-border-color) transparent transparent var(--glpi-timeline-fup-border-color);
-            }
-
-            &.t-right::after {
-                border-color: var(--glpi-timeline-fup-bg) transparent transparent var(--glpi-timeline-fup-bg);
-            }
-        }
+    &.ITILFollowup .timeline-content {
+        border-color: var(--glpi-timeline-fup-border-color);
+        background-color: var(--glpi-timeline-fup-bg);
+        color: var(--glpi-timeline-fup-fg);
     }
 
-    &.ITILTask {
-        .timeline-content {
-            background-color: var(--glpi-timeline-task-bg);
-            color: var(--glpi-timeline-task-fg);
-            border-color: var(--glpi-timeline-task-border-color);
-            background-image: url("../pics/timeline/task.png");
-            background-repeat: no-repeat;
-
-            &::before {
-                border-color: var(--glpi-timeline-task-border-color) var(--glpi-timeline-task-border-color) transparent transparent;
-            }
-
-            &::after {
-                border-color: var(--glpi-timeline-task-bg) var(--glpi-timeline-task-bg) transparent transparent;
-            }
-
-            &.t-right::before {
-                border-color: var(--glpi-timeline-task-border-color) transparent transparent var(--glpi-timeline-task-border-color);
-            }
-
-            &.t-right::after {
-                border-color: var(--glpi-timeline-task-bg) transparent transparent var(--glpi-timeline-task-bg);
-            }
-        }
+    &.ITILTask .timeline-content {
+        border-color: var(--glpi-timeline-task-border-color);
+        background-color: var(--glpi-timeline-task-bg);
+        color: var(--glpi-timeline-task-fg);
     }
 
-    &.ITILSolution {
-        .timeline-content {
-            background-color: var(--glpi-timeline-solution-bg);
-            color: var(--glpi-timeline-solution-fg);
-            border-color: var(--glpi-timeline-solution-border-color);
-            border-left: 1em transparent solid;
-
-            .solimg {
-                position: absolute;
-                color: rgb(66, 91, 100, 10%);
-                pointer-events: none;
-            }
-
-            &::before {
-                border-color: var(--glpi-timeline-solution-border-color) var(--glpi-timeline-solution-border-color) transparent transparent;
-            }
-
-            &::after {
-                border-color: var(--glpi-timeline-solution-bg) var(--glpi-timeline-solution-bg) transparent transparent;
-            }
-
-            &.t-right::before {
-                border-color: var(--glpi-timeline-solution-border-color) transparent transparent var(--glpi-timeline-solution-border-color);
-            }
-
-            &.t-right::after {
-                border-color: var(--glpi-timeline-solution-bg) transparent transparent var(--glpi-timeline-solution-bg);
-            }
-        }
+    // Lighter than the palette blue, which is too strong for a whole card
+    &.ITILSolution .timeline-content {
+        border-color: var(--glpi-timeline-solution-border-color);
+        background-color: color-mix(in srgb, var(--glpi-timeline-solution-bg) 50%, var(--tblr-bg-surface));
+        color: var(--glpi-timeline-solution-fg);
     }
 
-    &.ITILValidation,
-    &.ITILSolution {
+    // Approval status of a validation
+    &.ITILValidation {
         .timeline-content {
+            &.waiting,
+            &.accepted,
+            &.refused {
+                border-left-width: 10px;
+                border-left-style: solid;
+            }
+
             &.waiting {
                 border-left-color: rgb(221, 157, 39);
             }
 
             &.accepted {
-                border-left: 1em rgb(52, 143, 52) solid;
+                border-left-color: rgb(49, 174, 49);
             }
 
             &.refused {
-                border-left: 1em rgb(226, 80, 80) solid;
+                border-left-color: rgb(226, 80, 80);
             }
         }
     }
@@ -311,6 +316,7 @@
         .timeline-content {
             border: 0;
             box-shadow: none;
+            background-color: transparent;
         }
 
         &#new-Document_Item-block {
@@ -322,52 +328,10 @@
         }
     }
 
-    &.Log,
-    &.ITILReminder {
-        width: 100%;
-
-        .user-part {
-            display: none !important;
-        }
-
-        .content-part {
-            flex-direction: row-reverse !important;
-            justify-content: flex-end;
-            margin-left: 75px;
-            margin-right: 83px;
-
-            .timeline-content {
-                border: 0;
-                box-shadow: none;
-                margin-top: 0 !important;
-                flex-grow: 0 !important;
-                background: transparent;
-
-                .card-body {
-                    padding: 0;
-                    display: flex;
-                    flex-direction: row-reverse;
-
-                    .timeline-header {
-                        margin-left: 1rem;
-                        margin-top: 0;
-                        margin-bottom: 0;
-                    }
-                }
-            }
-
-            .user_link {
-                display: none !important;
-            }
-
-            .itil-date-creation {
-                margin-left: 1rem !important;
-            }
-        }
-    }
-
     .timeline-badges {
-        margin-bottom: -0.75rem;
+        &:has(> *) {
+            margin-top: 1rem;
+        }
 
         .badge {
             @include tabler-badge-fix;
@@ -386,6 +350,7 @@
     }
 }
 
+// Answer forms, opened at the end of the timeline
 #new-itilobject-form {
     width: 100%;
 
@@ -395,11 +360,17 @@
         transition: none;
     }
 
-    .timeline-item {
-        &.ITILSolution {
-            .timeline-content {
-                border-left: 1px solid transparent;
-            }
+    // Forms take the whole width of the conversation
+    > .timeline-item {
+        width: 100%;
+
+        .content-part {
+            flex: 1 1 auto;
+        }
+
+        .timeline-content {
+            width: 100%;
+            max-width: none;
         }
     }
 }
@@ -447,7 +418,6 @@
             &.ITILTask.info,
             &.Document_Item,
             &.Log,
-            &.KnowbaseItemComment,
             &.ITILReminder {
                 display: none;
             }
@@ -587,11 +557,6 @@
                             }
                         }
                     }
-
-                    &::before,
-                    &::after {
-                        display: none;
-                    }
                 }
 
                 .sub-documents {
@@ -645,4 +610,222 @@ ul.legacy-timeline-actions {
     .form-button-separator {
         border-top: 0 !important;
     }
+}
+
+.timeline-day-separator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--tblr-secondary);
+
+    &::before,
+    &::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background-color: var(--tblr-border-color);
+    }
+
+    .timeline-todo-list & {
+        display: none;
+    }
+}
+
+// Keep the conversation centered in a wide timeline (e.g. when side panels are collapsed):
+// it follows the timeline width, keeping a margin on the sides, but never gets narrower than 860px
+#itil-object-container .itil-timeline {
+    align-self: center;
+    width: 100%;
+    max-width: max(860px, 80%);
+}
+
+// History entries: discreet centered lines
+.timeline-item.timeline-log {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px 6px;
+    align-self: center;
+    width: auto;
+    max-width: 90%;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--tblr-secondary);
+
+    &:hover {
+        background-color: var(--glpi-hover-bg);
+    }
+
+    .timeline-log-content {
+        i {
+            font-size: 0.875rem;
+            vertical-align: -2px;
+        }
+
+        del {
+            color: var(--tblr-secondary);
+            opacity: 0.8;
+        }
+
+        ins {
+            text-decoration: none;
+            font-weight: 500;
+            color: var(--tblr-body-color);
+        }
+    }
+
+    .timeline-log-meta {
+        display: inline-flex;
+        gap: 6px;
+        color: var(--tblr-secondary);
+        opacity: 0.8;
+
+        a {
+            color: inherit;
+        }
+    }
+}
+
+// Pending reason set by a timeline entry
+.timeline-item .timeline-badges .badge.timeline-pending-badge {
+    &.is-pending {
+        background-color: color-mix(in srgb, var(--tblr-warning) 12%, transparent);
+        color: color-mix(in srgb, var(--tblr-warning) 65%, var(--tblr-body-color));
+    }
+
+    &.is-done {
+        background-color: var(--glpi-timeline-badge-bg);
+        color: var(--glpi-timeline-badge-fg);
+    }
+
+    a {
+        color: inherit;
+        font-weight: 600;
+    }
+}
+
+// Approval status of a solution, and its approval actions
+.timeline-item .solution-approval {
+    margin-top: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--tblr-border-color);
+
+    .solution-approval-status {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+    }
+
+    .solution-approval-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 10px 2px 8px;
+        border-radius: 999px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        line-height: 1.5;
+
+        &.is-waiting {
+            background-color: color-mix(in srgb, var(--tblr-warning) 15%, transparent);
+            color: color-mix(in srgb, var(--tblr-warning) 65%, var(--tblr-body-color));
+        }
+
+        &.is-accepted {
+            background-color: color-mix(in srgb, var(--tblr-success) 15%, transparent);
+            color: var(--tblr-success);
+        }
+
+        &.is-refused {
+            background-color: color-mix(in srgb, var(--tblr-danger) 15%, transparent);
+            color: var(--tblr-danger);
+        }
+    }
+
+    .solution-approval-user {
+        font-size: 0.8125rem;
+        color: var(--tblr-secondary);
+
+        a {
+            color: inherit;
+        }
+    }
+
+    // Filled buttons keep a white text, some dark palettes set a grey one on every button
+    .btn-success,
+    .btn-danger {
+        --tblr-btn-color: #fff;
+        --tblr-btn-hover-color: #fff;
+        --tblr-btn-active-color: #fff;
+    }
+
+    .solution-approval-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 0.75rem;
+
+        .btn {
+            gap: 4px;
+            font-weight: 600;
+        }
+    }
+
+    // While refusing, the refusal form and its own actions replace the approval actions
+    &:has(> .collapse.show, > .collapsing) .solution-approval-actions {
+        display: none;
+    }
+
+    .solution-refuse-form {
+        margin-top: 0.75rem;
+    }
+
+    .solution-refuse-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+
+        .btn {
+            gap: 4px;
+            font-weight: 600;
+        }
+    }
+}
+
+// Link between a refused solution and the followup giving the reason of the refusal
+.timeline-item .timeline-refusal-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--tblr-danger) 12%, transparent);
+    color: var(--tblr-danger);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+
+    i {
+        font-size: 0.8125rem;
+    }
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--tblr-danger) 20%, transparent);
+        text-decoration: none;
+    }
+}
+
+// Entry reached from a link of the timeline
+.timeline-item:target .timeline-content {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tblr-primary) 40%, transparent);
 }

@@ -33,11 +33,27 @@
 {% set is_timeline_reversed = user_pref('timeline_order') == constant('CommonITILObject::TIMELINE_ORDER_REVERSE') %}
 {% set is_helpdesk = get_current_interface() == 'helpdesk' %}
 
+{% macro day_separator(day) %}
+    {% if day == 'now'|date('Y-m-d') %}
+        {% set label = __('Today') %}
+    {% elseif day == '-1 day'|date('Y-m-d') %}
+        {% set label = __('Yesterday') %}
+    {% else %}
+        {% set label = day|formatted_date %}
+    {% endif %}
+    <div class="timeline-day-separator" role="separator" aria-label="{{ label }}">{{ label }}</div>
+{% endmacro %}
+
+{# Group by the date used to sort the timeline #}
+{% set description_day = item.fields['date']|date('Y-m-d') %}
+{% set previous_day = null %}
+
 <div class="itil-timeline d-flex flex-column align-items-start mb-auto {{ is_helpdesk ? "px-3 py-2" : '' }}">
     {% if not is_timeline_reversed %}
+        {{ _self.day_separator(description_day) }}
+        {% set previous_day = description_day %}
         {{ include('components/itilobject/timeline/main_description.html.twig') }}
     {% else %}
-        {{ include('components/itilobject/timeline/approbation_form.html.twig') }}
         {{ include('components/itilobject/answer.html.twig') }}
     {% endif %}
 
@@ -45,6 +61,23 @@
 
     {# Keep track of loaded user to avoid reloading them from database if they appear multiple time in a ticket #}
     {% set user_cache = {} %}
+
+    {#
+     # Link the followup giving the reason of a solution refusal to this solution, by their anchors.
+     # Refusing a solution adds this followup then marks the solution as refused: same user, same time.
+     #}
+    {% set refusal_links = {} %}
+    {% for solution in timeline|filter((e) => e['type'] == 'ITILSolution' and e['item']['status'] == constant('CommonITILValidation::REFUSED')) %}
+        {% set reason = timeline|filter((e) => (e['itiltype'] ?? null) == 'Followup'
+            and e['item']['users_id'] == solution['item']['users_id_approval']
+            and ((e['item']['date_creation']|date('U')) - (solution['item']['date_approval']|date('U')))|abs <= 60
+        )|first %}
+        {% if reason %}
+            {% set refusal_links = refusal_links|merge({
+                ('ITILFollowup_' ~ reason['item']['id']): 'ITILSolution_' ~ solution['item']['id'],
+            }) %}
+        {% endif %}
+    {% endfor %}
 
     {% for entry in timeline %}
         {% set entry_i = entry['item'] %}
@@ -107,7 +140,36 @@
         {# Update cache #}
         {% set user_cache = user_cache|merge({("_" ~ users_id): entry_user}) %}
 
+        {% set entry_day = (entry_i['date'] ?? date_creation)|date('Y-m-d') %}
+        {% if entry_day != previous_day %}
+            {{ _self.day_separator(entry_day) }}
+            {% set previous_day = entry_day %}
+        {% endif %}
+
         {% set anchor = entry['type'] ~ '_' ~ entry_i['id'] %}
+        {% if entry['type'] in ['Log', 'ITILReminder'] %}
+        {# History entries and automatic reminders are displayed as a compact line #}
+        <div id="{{ anchor }}" class="timeline-item timeline-log mb-2 {{ entry['type'] }} {{ entry['class'] ?? '' }}"
+             data-itemtype="{{ entry['type'] }}" data-items-id="{{ entry_i['id'] }}" data-testid="timeline-{{ entry['type'] }}">
+            {{ call_plugin_hook(constant('Glpi\\Plugin\\Hooks::PRE_SHOW_ITEM'), {'item': entry_object, 'options': {'parent': item, 'rand': entry_rand}}) }}
+            <span class="timeline-log-content">
+                {% if entry_i['is_content_safe'] %}
+                    {{ entry_i['content']|raw }}
+                {% else %}
+                    {{ entry_i['content']|safe_html }}
+                {% endif %}
+            </span>
+            <span class="timeline-log-meta">
+                {% if entry_user is not null and not anonym_user %}
+                    <span aria-hidden="true">·</span>
+                    {{ entry_user.getFriendlyName() }}
+                {% endif %}
+                <span aria-hidden="true">·</span>
+                <a href="#{{ anchor }}" title="{{ date_creation|formatted_datetime }}" data-bs-toggle="tooltip">{{ date_creation|date('H:i') }}</a>
+            </span>
+            {{ call_plugin_hook(constant('Glpi\\Plugin\\Hooks::POST_SHOW_ITEM'), {'item': entry_object, 'options': {'parent': item, 'rand': entry_rand}}) }}
+        </div>
+        {% else %}
         <div id="{{ anchor }}" class="timeline-item mb-3 {{ is_private_class }} {{ itiltype }} {{ state_class }} {{ entry['class'] ?? '' }} {{ 'right' in item_position ? 'ms-auto' : '' }}"
              data-itemtype="{{ entry['type'] }}" data-items-id="{{ entry_i['id'] }}"
              data-testid="timeline-{{ entry['type'] }}"
@@ -177,7 +239,15 @@
                     {% endif %}
                 </div>
                 <div class="col-12 col-sm d-flex flex-column content-part">
-                    <div class="mt-2 timeline-content {{ solution_class }} flex-grow-1 {{ item_position }} card">
+                    {{ include('components/itilobject/timeline/timeline_item_meta.html.twig', {
+                        'users_id': users_id,
+                        'user_object': entry_user,
+                        'anonym_user': anonym_user,
+                        'date': date_creation,
+                        'anchor': anchor,
+                        'is_right': 'right' in item_position,
+                    }, with_context = false) }}
+                    <div class="timeline-content {{ solution_class }} flex-grow-1 {{ item_position }} card">
                         <div class="card-body px-1 px-xxl-3">
                             {{ include('components/itilobject/timeline/timeline_item_header.html.twig', {
                                 'user_object': entry_user,
@@ -221,9 +291,16 @@
 
             {{ call_plugin_hook(constant('Glpi\\Plugin\\Hooks::POST_SHOW_ITEM'), {'item': entry_object, 'options': {'parent': item, 'rand': entry_rand}}) }}
         </div>
+        {% endif %}
     {% endfor %}
 
     {% if is_timeline_reversed %}
+        {# Variables set inside the loop are not kept, read the last displayed entry day again #}
+        {% set last_entry = timeline is not empty ? (timeline|last)['item'] : null %}
+        {% set last_day = last_entry ? (last_entry['date'] ?? last_entry['date_creation'])|date('Y-m-d') : null %}
+        {% if description_day != last_day %}
+            {{ _self.day_separator(description_day) }}
+        {% endif %}
         {{ include('components/itilobject/timeline/main_description.html.twig') }}
     {% endif %}
 
@@ -238,7 +315,6 @@
     </div>
 
     {% if not is_timeline_reversed %}
-        {{ include('components/itilobject/timeline/approbation_form.html.twig') }}
         {{ include('components/itilobject/answer.html.twig') }}
     {% endif %}
 
@@ -300,6 +376,19 @@
             $("#itil-footer .main-actions").show();
             $("#right-actions").show();
         });
+
+        // Hide the separator of a day whose entries are all hidden (e.g. only history entries, hidden by default)
+        const updateDaySeparators = () => {
+            $('.itil-timeline .timeline-day-separator').each(function() {
+                const separator = $(this);
+                const has_entries = separator.nextUntil('.timeline-day-separator')
+                    .filter('.timeline-item[data-itemtype]:not(.d-none)').length > 0;
+                separator.toggleClass('d-none', !has_entries);
+            });
+        };
+        updateDaySeparators();
+        // Triggered after the timeline filter has been applied on click
+        $(document).on('change', '.filter-timeline-popover .trigger-filter input[type=checkbox]', updateDaySeparators);
     });
 
     // Align ITILReminder
