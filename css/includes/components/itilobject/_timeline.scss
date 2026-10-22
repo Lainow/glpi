@@ -172,6 +172,13 @@
             margin-bottom: 0;
         }
 
+        // Form footers stick to the bottom of the card, which has a smaller padding than the default one
+        .card-footer.mb-n3 {
+            margin-bottom: -0.5625rem !important;
+            border-bottom-left-radius: 11px;
+            border-bottom-right-radius: 11px;
+        }
+
         // Cards use the page background, on the white timeline
         background-color: var(--tblr-body-bg);
         color: var(--tblr-body-color);
@@ -779,14 +786,32 @@ ul.legacy-timeline-actions {
             font-weight: 600;
         }
     }
+}
 
-    // While refusing, the refusal form and its own actions replace the approval actions
-    &:has(> .collapse.show, > .collapsing) .solution-approval-actions {
+// Followup giving the reason of a solution refusal, written below the solution
+.timeline-item.ITILSolution {
+    // While it is open, it replaces the approval actions of the solution
+    &:has(> .solution-refusal.show, > .solution-refusal.collapsing) .solution-approval-actions {
         display: none;
     }
 
-    .solution-refuse-form {
-        margin-top: 0.75rem;
+    .solution-refusal {
+        // As wide as the solution above
+        .content-part {
+            flex: 1 1 auto;
+        }
+
+        .timeline-content {
+            margin-top: 0.5rem;
+            border-color: var(--glpi-timeline-fup-border-color);
+            background-color: var(--glpi-timeline-fup-bg);
+            color: var(--glpi-timeline-fup-fg);
+        }
+
+        .timeline-type-badge {
+            background-color: color-mix(in srgb, var(--glpi-timeline-fup-fg) 10%, var(--glpi-timeline-fup-bg));
+            color: var(--glpi-timeline-fup-fg);
+        }
     }
 
     .solution-refuse-actions {
@@ -798,7 +823,20 @@ ul.legacy-timeline-actions {
             gap: 4px;
             font-weight: 600;
         }
+
+        // Some dark palettes set a grey text on every button
+        .btn-danger {
+            --tblr-btn-color: #fff;
+            --tblr-btn-hover-color: #fff;
+            --tblr-btn-active-color: #fff;
+        }
     }
+}
+
+// Followup giving the reason of a solution refusal, also while it is written
+.timeline-item.refusal-reason .timeline-content,
+.timeline-item.ITILSolution .solution-refusal .timeline-content {
+    border-left: 10px solid var(--tblr-danger);
 }
 
 // Link between a refused solution and the followup giving the reason of the refusal
@@ -818,14 +856,4 @@ ul.legacy-timeline-actions {
     i {
         font-size: 0.8125rem;
     }
-
-    &:hover {
-        background-color: color-mix(in srgb, var(--tblr-danger) 20%, transparent);
-        text-decoration: none;
-    }
-}
-
-// Entry reached from a link of the timeline
-.timeline-item:target .timeline-content {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--tblr-primary) 40%, transparent);
 }

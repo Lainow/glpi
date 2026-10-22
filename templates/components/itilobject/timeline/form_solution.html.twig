@@ -95,7 +95,8 @@
                {% if approval_status == constant('CommonITILValidation::WAITING')
                   and item.isSolved() and item.canApprove()
                   and item.isAllowedStatus(item.fields['status'], constant('CommonITILObject::CLOSED')) %}
-                  {% set refuse_block_id = 'solution-refuse-' ~ rand %}
+                  {# The refusal form is displayed below the solution, see solution_refusal_form.html.twig #}
+                  {% set refuse_block_id = 'solution-refuse-' ~ entry_i['id'] %}
                   <div class="solution-approval-actions">
                      {# Approving does not need any comment #}
                      <form method="post" action="{{ 'ITILFollowup'|itemtype_form_path }}" data-submit-once>
@@ -112,39 +113,6 @@
                         <i class="ti ti-x" aria-hidden="true"></i>
                         <span>{{ __('Refuse') }}</span>
                      </button>
-                  </div>
-
-                  {# Refusing requires a reason #}
-                  <div class="collapse" id="{{ refuse_block_id }}">
-                     <form method="post" action="{{ 'ITILFollowup'|itemtype_form_path }}" class="solution-refuse-form" data-submit-once>
-                        <input type="hidden" name="itemtype" value="{{ item.getType() }}" />
-                        <input type="hidden" name="items_id" value="{{ item.fields['id'] }}" />
-                        <input type="hidden" name="requesttypes_id" value="0" />
-                        {{ fields.textareaField(
-                           'content',
-                           '',
-                           __('Comments'),
-                           {
-                              'full_width': true,
-                              'enable_richtext': true,
-                              'enable_fileupload': true,
-                              'entities_id': item.fields['entities_id'],
-                              'is_horizontal': false,
-                              'required': true,
-                              'rand': rand,
-                           }
-                        ) }}
-                        <div class="solution-refuse-actions">
-                           <button type="button" class="btn" data-bs-toggle="collapse" data-bs-target="#{{ refuse_block_id }}"
-                                   aria-controls="{{ refuse_block_id }}">
-                              <span>{{ __('Cancel') }}</span>
-                           </button>
-                           <button type="submit" class="btn btn-danger" name="add_reopen">
-                              <i class="ti ti-x" aria-hidden="true"></i>
-                              <span>{{ __('Refuse') }}</span>
-                           </button>
-                        </div>
-                     </form>
                   </div>
                {% endif %}
             </div>

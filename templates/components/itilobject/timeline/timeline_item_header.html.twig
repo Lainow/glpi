@@ -30,28 +30,21 @@
  # ---------------------------------------------------------------------
  #}
 
-{% set type_labels = {
-   'ITILFollowup': _n('Followup', 'Followups', 1),
-   'ITILTask': _n('Task', 'Tasks', 1),
-   'ITILSolution': _n('Solution', 'Solutions', 1),
-   'ITILValidation': 'CommonITILValidation'|itemtype_name(1),
-   'Document_Item': _n('Document', 'Documents', 1),
-} %}
-{% set type_icon = (timeline_itemtypes|default([])|filter((v) => v.type == itiltype)|first).icon|default('') %}
+{% set refused_solution_anchor = (refusal_links|default({}))[anchor|default('')] ?? null %}
 
 <div class="d-flex align-items-center timeline-header">
-   {% if type_labels[itiltype] is defined %}
-      <span class="timeline-type-badge me-2">
-         {% if type_icon %}<i class="{{ type_icon }}" aria-hidden="true"></i>{% endif %}
-         {{ type_labels[itiltype] }}
-      </span>
+   {# The reason of a solution refusal is identified by its own badge only #}
+   {% if not refused_solution_anchor %}
+      {{ include('components/itilobject/timeline/timeline_type_badge.html.twig', {
+         'itiltype': itiltype,
+         'timeline_itemtypes': timeline_itemtypes|default([]),
+      }, with_context = false) }}
    {% endif %}
-   {% set refused_solution_anchor = (refusal_links|default({}))[anchor|default('')] ?? null %}
    {% if itiltype == 'ITILFollowup' and refused_solution_anchor %}
-      <a class="timeline-refusal-link me-2" href="#{{ refused_solution_anchor }}" data-testid="refusal-reason-link">
+      <span class="timeline-refusal-link me-2" data-testid="refusal-reason-badge">
          <i class="ti ti-x" aria-hidden="true"></i>
          {{ __('Reason of rejection') }}
-      </a>
+      </span>
    {% endif %}
    <div class="d-flex creator">
       {{ include('components/itilobject/timeline/timeline_item_header_badges.html.twig', {

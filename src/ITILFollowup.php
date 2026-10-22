@@ -306,6 +306,9 @@ class ITILFollowup extends CommonDBChild
         self::addToMergedTickets();
 
         $this->updateParentStatus($this->input['_job'], $this->input);
+        if (!empty($this->input['_reopen']) || !empty($this->input['_close'])) {
+            $this->linkToAnsweredSolution();
+        }
         PendingReason_Item::handlePendingReasonUpdateFromNewTimelineItem($this);
 
         $donotif = !isset($this->input['_disablenotif']) && $CFG_GLPI["use_notifications"];
@@ -318,6 +321,38 @@ class ITILFollowup extends CommonDBChild
         }
 
         parent::post_addItem();
+    }
+
+    /**
+     * Keep a reference to this followup in the solution it answers (approval or reason of the refusal).
+     */
+    private function linkToAnsweredSolution(): void
+    {
+        global $DB;
+
+        // The parent status update has just approved or refused the last solution
+        $solution = $DB->request([
+            'SELECT' => ['id', 'status', 'itilfollowups_id'],
+            'FROM'   => ITILSolution::getTable(),
+            'WHERE'  => [
+                'itemtype' => $this->fields['itemtype'],
+                'items_id' => $this->fields['items_id'],
+            ],
+            'ORDER'  => ['date_creation DESC', 'id DESC'],
+            'LIMIT'  => 1,
+        ])->current();
+
+        if (
+            $solution !== null
+            && in_array($solution['status'], [CommonITILValidation::ACCEPTED, CommonITILValidation::REFUSED])
+            && empty($solution['itilfollowups_id'])
+        ) {
+            $DB->update(
+                ITILSolution::getTable(),
+                ['itilfollowups_id' => $this->getID()],
+                ['id' => $solution['id']]
+            );
+        }
     }
 
     private function addToMergedTickets(): void

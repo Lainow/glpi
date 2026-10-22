@@ -62,21 +62,14 @@
     {# Keep track of loaded user to avoid reloading them from database if they appear multiple time in a ticket #}
     {% set user_cache = {} %}
 
-    {#
-     # Link the followup giving the reason of a solution refusal to this solution, by their anchors.
-     # Refusing a solution adds this followup then marks the solution as refused: same user, same time.
-     #}
+    {# Link the followup giving the reason of a solution refusal to this solution, by their anchors #}
     {% set refusal_links = {} %}
-    {% for solution in timeline|filter((e) => e['type'] == 'ITILSolution' and e['item']['status'] == constant('CommonITILValidation::REFUSED')) %}
-        {% set reason = timeline|filter((e) => (e['itiltype'] ?? null) == 'Followup'
-            and e['item']['users_id'] == solution['item']['users_id_approval']
-            and ((e['item']['date_creation']|date('U')) - (solution['item']['date_approval']|date('U')))|abs <= 60
-        )|first %}
-        {% if reason %}
-            {% set refusal_links = refusal_links|merge({
-                ('ITILFollowup_' ~ reason['item']['id']): 'ITILSolution_' ~ solution['item']['id'],
-            }) %}
-        {% endif %}
+    {% for solution in timeline|filter((e) => e['type'] == 'ITILSolution'
+        and e['item']['status'] == constant('CommonITILValidation::REFUSED')
+        and (e['item']['itilfollowups_id'] ?? 0) > 0) %}
+        {% set refusal_links = refusal_links|merge({
+            ('ITILFollowup_' ~ solution['item']['itilfollowups_id']): 'ITILSolution_' ~ solution['item']['id'],
+        }) %}
     {% endfor %}
 
     {% for entry in timeline %}
@@ -170,7 +163,7 @@
             {{ call_plugin_hook(constant('Glpi\\Plugin\\Hooks::POST_SHOW_ITEM'), {'item': entry_object, 'options': {'parent': item, 'rand': entry_rand}}) }}
         </div>
         {% else %}
-        <div id="{{ anchor }}" class="timeline-item mb-3 {{ is_private_class }} {{ itiltype }} {{ state_class }} {{ entry['class'] ?? '' }} {{ 'right' in item_position ? 'ms-auto' : '' }}"
+        <div id="{{ anchor }}" class="timeline-item mb-3 {{ is_private_class }} {{ itiltype }} {{ state_class }} {{ entry['class'] ?? '' }} {{ 'right' in item_position ? 'ms-auto' : '' }} {{ refusal_links[anchor] is defined ? 'refusal-reason' : '' }}"
              data-itemtype="{{ entry['type'] }}" data-items-id="{{ entry_i['id'] }}"
              data-testid="timeline-{{ entry['type'] }}"
              {% if entry['item_action'] is defined %}data-item-action="{{ entry['item_action'] }}"{% endif %}>
@@ -288,6 +281,10 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if itiltype == 'ITILSolution' %}
+                {{ include('components/itilobject/timeline/solution_refusal_form.html.twig') }}
+            {% endif %}
 
             {{ call_plugin_hook(constant('Glpi\\Plugin\\Hooks::POST_SHOW_ITEM'), {'item': entry_object, 'options': {'parent': item, 'rand': entry_rand}}) }}
         </div>

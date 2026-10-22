@@ -7544,7 +7544,8 @@ abstract class CommonITILObject extends CommonDBTM implements KanbanInterface, T
      *      date_mod: string|null,
      *      users_id_approval: int,
      *      date_approval: string|null,
-     *      status: int
+     *      status: int,
+     *      itilfollowups_id: int|null
      *     },
      *     object: mixed
      * }> Timeline items
@@ -7760,6 +7761,7 @@ abstract class CommonITILObject extends CommonDBTM implements KanbanInterface, T
                     'users_id_approval'  => $solution_item['users_id_approval'],
                     'date_approval'      => $solution_item['date_approval'],
                     'status'             => $solution_item['status'],
+                    'itilfollowups_id'   => $solution_item['itilfollowups_id'],
                 ],
                 'object' => $solution,
             ];

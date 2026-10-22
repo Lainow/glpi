@@ -1,0 +1,94 @@
+{#
+ # ---------------------------------------------------------------------
+ #
+ # GLPI - Gestionnaire Libre de Parc Informatique
+ #
+ # http://glpi-project.org
+ #
+ # @copyright 2015-2026 Teclib' and contributors.
+ # @licence   https://www.gnu.org/licenses/gpl-3.0.html
+ #
+ # ---------------------------------------------------------------------
+ #
+ # LICENSE
+ #
+ # This file is part of GLPI.
+ #
+ # This program is free software: you can redistribute it and/or modify
+ # it under the terms of the GNU General Public License as published by
+ # the Free Software Foundation, either version 3 of the License, or
+ # (at your option) any later version.
+ #
+ # This program is distributed in the hope that it will be useful,
+ # but WITHOUT ANY WARRANTY; without even the implied warranty of
+ # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ # GNU General Public License for more details.
+ #
+ # You should have received a copy of the GNU General Public License
+ # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ #
+ # ---------------------------------------------------------------------
+ #}
+
+{#
+ # Followup giving the reason of a solution refusal, written below the solution.
+ # Opened by the "Refuse" button of the solution, see form_solution.html.twig.
+ #}
+
+{% import 'components/form/fields_macros.html.twig' as fields %}
+
+{% if entry_i['status'] == constant('CommonITILValidation::WAITING')
+   and item.isSolved() and item.canApprove()
+   and item.isAllowedStatus(item.fields['status'], constant('CommonITILObject::CLOSED')) %}
+   {% set refuse_block_id = 'solution-refuse-' ~ entry_i['id'] %}
+   {# Same layout as the timeline entries, written by the current user on the side of the solution #}
+   <div class="row solution-refusal collapse" id="{{ refuse_block_id }}">
+      <div class="col-auto todo-list-state"></div>
+      <div class="col-auto d-flex flex-column user-part ms-auto ms-0 order-sm-last">
+         {{ include('components/user/picture.html.twig', {'users_id': session('glpiID')}, with_context = false) }}
+      </div>
+      <div class="col-12 col-sm d-flex flex-column content-part">
+         <div class="timeline-content t-right card">
+            <div class="card-body px-1 px-xxl-3">
+               <div class="d-flex align-items-center timeline-header">
+                  <span class="timeline-refusal-link me-2">
+                     <i class="ti ti-x" aria-hidden="true"></i>
+                     {{ __('Reason of rejection') }}
+                  </span>
+               </div>
+
+               {# Refusing requires a reason #}
+               <form method="post" action="{{ 'ITILFollowup'|itemtype_form_path }}" class="solution-refuse-form" data-submit-once>
+                  <input type="hidden" name="itemtype" value="{{ item.getType() }}" />
+                  <input type="hidden" name="items_id" value="{{ item.fields['id'] }}" />
+                  <input type="hidden" name="requesttypes_id" value="0" />
+                  {{ fields.textareaField(
+                     'content',
+                     '',
+                     __('Comments'),
+                     {
+                        'full_width': true,
+                        'enable_richtext': true,
+                        'enable_fileupload': true,
+                        'entities_id': item.fields['entities_id'],
+                        'is_horizontal': false,
+                        'required': true,
+                        'rand': entry_rand,
+                     }
+                  ) }}
+                  <div class="solution-refuse-actions">
+                     <button type="button" class="btn" data-bs-toggle="collapse" data-bs-target="#{{ refuse_block_id }}"
+                             aria-controls="{{ refuse_block_id }}">
+                        <span>{{ __('Cancel') }}</span>
+                     </button>
+                     <button type="submit" class="btn btn-danger" name="add_reopen">
+                        <i class="ti ti-x" aria-hidden="true"></i>
+                     <span>{{ __('Refuse') }}</span>
+                  </button>
+               </div>
+            </form>
+         </div>
+      </div>
+      </div>
+   </div>
+{% endif %}

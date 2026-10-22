@@ -609,6 +609,68 @@ HTML,
         $this->assertSame($ticket::CLOSED, (int) $ticket->fields['status']);
     }
 
+    public function testSolutionIsLinkedToItsAnswerFollowup()
+    {
+        $tech_id     = getItemByTypeName('User', 'tech', true);
+        $postonly_id = getItemByTypeName('User', 'post-only', true);
+
+        $this->login('post-only', 'postonly');
+        $ticket = $this->createItem(Ticket::class, [
+            'name'                => 'ticket title',
+            'content'             => 'content',
+            '_users_id_requester' => $postonly_id,
+            '_users_id_assign'    => $tech_id,
+        ], ['_users_id_requester', '_users_id_assign']);
+
+        // Refused solution: linked to the followup giving the reason of the refusal
+        $this->login('tech', 'tech');
+        $refused = $this->createItem(\ITILSolution::class, [
+            'itemtype' => Ticket::class,
+            'items_id' => $ticket->getID(),
+            'content'  => 'a solution',
+        ]);
+
+        $this->login('post-only', 'postonly');
+        $reason = $this->createItem(\ITILFollowup::class, [
+            'itemtype'   => Ticket::class,
+            'items_id'   => $ticket->getID(),
+            'add_reopen' => '1',
+            'content'    => 'The reason of the refusal',
+        ], ['add_reopen']);
+
+        $this->assertTrue($refused->getFromDB($refused->getID()));
+        $this->assertSame(\CommonITILValidation::REFUSED, (int) $refused->fields['status']);
+        $this->assertSame($reason->getID(), (int) $refused->fields['itilfollowups_id']);
+
+        // Another followup does not replace the reason of the refusal
+        $this->createItem(\ITILFollowup::class, [
+            'itemtype' => Ticket::class,
+            'items_id' => $ticket->getID(),
+            'content'  => 'Another followup',
+        ]);
+        $this->assertTrue($refused->getFromDB($refused->getID()));
+        $this->assertSame($reason->getID(), (int) $refused->fields['itilfollowups_id']);
+
+        // Approved solution: linked to the approval followup
+        $this->login('tech', 'tech');
+        $approved = $this->createItem(\ITILSolution::class, [
+            'itemtype' => Ticket::class,
+            'items_id' => $ticket->getID(),
+            'content'  => 'another solution',
+        ]);
+
+        $this->login('post-only', 'postonly');
+        $approval = $this->createItem(\ITILFollowup::class, [
+            'itemtype'  => Ticket::class,
+            'items_id'  => $ticket->getID(),
+            'add_close' => '1',
+        ], ['add_close']);
+
+        $this->assertTrue($approved->getFromDB($approved->getID()));
+        $this->assertSame(\CommonITILValidation::ACCEPTED, (int) $approved->fields['status']);
+        $this->assertSame($approval->getID(), (int) $approved->fields['itilfollowups_id']);
+    }
+
     public function testAddEmptyContent()
     {
         $this->login();
